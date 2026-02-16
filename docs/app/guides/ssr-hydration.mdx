@@ -125,13 +125,13 @@ export default function Root() {
   return (
     <html lang="en">
       <head>
+        <script data-cy-bootstrap suppressHydrationWarning>
+          {/* Cypress bootstrap injection point */}
+        </script>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <script data-cy-bootstrap suppressHydrationWarning>
-          {/* Cypress bootstrap injection point */}
-        </script>
       </head>
       <body>
         <Outlet />
@@ -217,6 +217,29 @@ implementing this fix, the issue may be:
   DOM
 
 ## Caveats and Considerations
+
+### Script Execution Order
+
+:::caution
+
+Place the `data-cy-bootstrap` marker before any non-deferred `<script>` tags in
+`<head>`. Scripts that execute first can bypass Cypress's bootstrap patches and
+cause serious issues:
+
+- **Synchronous XMLHttpRequest lockup**: The bootstrap script patches
+  `XMLHttpRequest` to insert a header that prevents `cy.intercept()` from
+  intercepting synchronous requests. Without this patch, intercepted synchronous
+  `XMLHttpRequest`s can lock the browser.
+- **Timer patch bypass**: The bootstrap script patches timer macrotask
+  functions (`setTimeout`, `setInterval`, etc.) so Cypress can pause them while
+  taking screenshots. If earlier scripts capture references to unpatched timers,
+  Cypress cannot pause those tasks, which can lead to unpredictable screenshot
+  behavior.
+
+To avoid this, place the marker as the first element in `<head>`, or ensure
+other scripts use `defer` or `async`.
+
+:::
 
 ### When to Use
 
